@@ -1,11 +1,11 @@
-.openai-search .wp-block-search__inside-wrapper {
+.brainy-search .wp-block-search__inside-wrapper {
     display: flex;
     flex: auto;
     flex-wrap: nowrap;
     max-width: 100%;
 }
 
-.openai-search .wp-block-search__input {
+.brainy-search .wp-block-search__input {
     padding: 8px 1em;
     flex-grow: 1;
     margin-left: 0;
@@ -16,12 +16,12 @@
     font-size: 1em;
 }
 
-.openai-search blockquote {
+.brainy-search blockquote {
     border: 1px dashed #000;
     margin: 0;
 }
 
-.openai-search blockquote p {
+.brainy-search blockquote p {
     margin: 1em;
     font-style: italic;
 }

@@ -1,16 +1,16 @@
-# OpenAI Search
+# BrainySearch
 
-The OpenAI Search plugin allows you to perform advanced search queries on your WordPress site using the OpenAI API. 
+The BrainySearch plugin allows you to perform advanced search queries on your WordPress site using the OpenAI API. 
 
-This WordPress plugin indexes your blog posts using the embeddings feature of OpenAI, and uses this data to enrich the AI search request. When a user searches for content using the `[openai_search]` shortcode, the plugin returns the following:
+This WordPress plugin indexes your blog posts using the embeddings feature of OpenAI, and uses this data to enrich the BrainySearch request. When a user searches for content using the `[brainy_search]` shortcode, the plugin returns the following:
 
 * An AI summary response of the most relevant results based on the content of the indexed blog posts
 * The most relevant search results based on the content of the indexed blog posts, along with a temperature label (0-100) that indicates the "creativity" or "diversity" of the results
 * Links to the indexed blog posts that match the user's search query.
 
-## Where to Use OpenAI Search
+## Where to Use BrainySearch
 
-The OpenAI Search plugin can be used on any WordPress site where advanced search functionality is desired. Some potential use cases include:
+The BrainySearch plugin can be used on any WordPress site where advanced search functionality is desired. Some potential use cases include:
 
 - E-commerce sites looking to provide more accurate and relevant product search results to customers
 - News or blog sites looking to provide more targeted search results based on article content
@@ -33,16 +33,16 @@ The OpenAI Search plugin can be used on any WordPress site where advanced search
 
 ## Installation
 
-1. Upload the `openai-search` directory to the `/wp-content/plugins/` directory
+1. Upload the `brainy-search` directory to the `/wp-content/plugins/` directory
 2. Activate the plugin through the 'Plugins' menu in WordPress
-3. Go to the OpenAI Search settings page and enter your API key
+3. Go to the BrainySearch settings page and enter your API key
 4. Customize the search settings to your preference
 5. To use this plugin, simply install and activate it in your WordPress installation. 
-6. The `/aisearch` page will be created automatically, and you can use the `[openai_search]` shortcode to display the search form on the page.
+6. The `/aisearch` page will be created automatically, and you can use the `[brainy_search]` shortcode to display the search form on the page.
 
 ## Settings
 
-The OpenAI Search plugin provides the following settings:
+The BrainySearch plugin provides the following settings:
 
 - **API Key**: Enter your OpenAI API key to enable search functionality
 - **Embedding Engine**: Choose the OpenAI embedding engine to use for search queries
@@ -57,21 +57,25 @@ The OpenAI Search plugin provides the following settings:
 
 ## Shortcodes
 
-The OpenAI Search plugin provides the following shortcodes:
+The BrainySearch plugin provides the following shortcodes:
 
-- `[openai_search]`: Displays both the search form and results in the same place
-- `[openai_search_form]`: Displays the search form only
-- `[openai_search_results]`: Displays the search results only
+- `[brainy_search]`: Displays both the search form and results in the same place
+- `[brainy_search_form]`: Displays the search form only
+- `[brainy_search_results]`: Displays the search results only
 
 
 To use a shortcode, simply add it to any post or page where you want it to appear.
 
+## Indexing content
+
+BrainySearch indexes your content such as blog posts after publishing, but it needs to wait a minute while your content appear in AI Search. It happens because BrainySearch use cron in background. Normally it happens once per minute but you must be sure that your cron is working.
+
 ## Template Files
 
-The OpenAI Search plugin provides the following template files for customization:
+The BrainySearch plugin provides the following template files for customization:
 
-- `openai-search-form.php`: Template file for the search form
-- `openai-search-results.php`: Template file for the search results
+- `brainy-search-form.php`: Template file for the search form
+- `brainy-search-results.php`: Template file for the search results
 
 To customize the appearance of the search form or search results, copy the appropriate template file to your theme's directory and modify it as needed.
 
@@ -81,7 +85,7 @@ If you need help with this plugin, please contact us at office@procoders.tech.
 
 ## License
 
-The OpenAI Search plugin is released under the [GPLv2](https://www.gnu.org/licenses/gpl-2.0.html) license.
+The BrainySearch plugin is released under the [GPLv2](https://www.gnu.org/licenses/gpl-2.0.html) license.
 
 
 ## Contact Us

@@ -1,8 +1,8 @@
 <?php
 /**
- * Template file for displaying OpenAI search results.
+ * Template file for displaying BrainySearch results.
  *
- * This template file is loaded by the `openai_search_handle_query()` function.
+ * This template file is loaded by the `brainy_search_handle_query()` function.
  *
  * @package your-theme
  */

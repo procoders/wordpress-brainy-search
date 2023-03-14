@@ -1,8 +1,8 @@
 <?php
 /*
-Plugin Name: OpenAI Search
-Plugin URI: https://procoders.tech/
-Description: Uses OpenAI's GPT-3 API to power a search engine on your WordPress site.
+Plugin Name: BrainySearch
+Plugin URI: https://github.com/procoders/wordpress-brainy-search
+Description: AI Search to power a search engine on your WordPress site
 Version: 1.0.0
 Author: Oleg Kopachovets
 Author URI: https://procoders.tech/
@@ -31,10 +31,10 @@ function openai_api_call($endpoint, $data)
     return json_decode($response, true);
 }
 
-function openai_search_load_template($template_name)
+function brainy_search_load_template($template_name)
 {
     // Attempt to load the theme's template file
-    $theme_template = locate_template('openai-search/' . $template_name . '.php');
+    $theme_template = locate_template('brainy-search/' . $template_name . '.php');
     if ($theme_template) {
         // Use the theme's template file if it exists
         return $theme_template;
@@ -44,7 +44,7 @@ function openai_search_load_template($template_name)
     }
 }
 
-function openai_search_init()
+function brainy_search_init()
 {
 
     $embedding_engine = get_option('embedding_engine', 'text-davinci-002');
@@ -105,15 +105,46 @@ function openai_search_init()
             $embeddings[] = $embedding;
         }
 
-        set_transient("embeddings_{$post_id}", $embeddings, 60 * 60 * 24);
+        set_transient("embeddings_{$post_id}", $embeddings, 60 * 60 * 24 * 365);
     }
+
+
+    // Hook the display_embeddings_notice() function to the admin_notices action
+    function display_embeddings_notice()
+    {
+        $notice = '<div class="notice notice-info">';
+        $notice .= '<p>The post embeddings are currently being generated. This process may take a few minutes to complete.</p>';
+        $notice .= '</div>';
+        echo $notice;
+    }
+
+    function schedule_embedding_generation($post_id, $model_engine)
+    {
+        $timestamp = time(); // Schedule the event to run immediately
+        wp_schedule_single_event($timestamp, 'generate_embeddings_event', array($post_id, $model_engine));
+
+        // add_action('admin_notices', 'display_embeddings_notice');
+
+    }
+
+    // Hook the schedule_embedding_generation() function to a custom WordPress action
+    add_action('generate_embeddings_action', 'schedule_embedding_generation', 10, 2);
+
+    // Define the function that will generate the embeddings and hook it to the generate_embeddings_event
+    add_action('generate_embeddings_event', 'generate_embeddings_for_post', 10, 2);
+
+
+
 
     // Define function to retrieve embeddings for a post
     function get_embeddings_for_post($post_id, $model_engine)
     {
         $embeddings = get_transient("embeddings_{$post_id}");
-        if (!$embeddings) {
-            generate_embeddings_for_post($post_id, $model_engine);
+
+        if (!$embeddings || !$embeddings[0]) {
+
+            //generate_embeddings_for_post($post_id, $model_engine);
+            schedule_embedding_generation($post_id, $model_engine);
             $embeddings = get_transient("embeddings_{$post_id}");
         }
         return $embeddings;
@@ -154,7 +185,7 @@ function openai_search_init()
     }
 
     // Define function to perform a search
-    function openai_search($query, $embedding_engine, $complete_engine, $max_tokens, $temperature, $top_p, $stop)
+    function brainy_search($query, $embedding_engine, $complete_engine, $max_tokens, $temperature, $top_p, $stop)
     {
         $posts = get_posts(
             array(
@@ -215,7 +246,7 @@ function openai_search_init()
 
 
     }
-    function openai_search_get_complete_engines()
+    function brainy_search_get_complete_engines()
     {
         return array(
             'text-davinci-001',
@@ -228,7 +259,7 @@ function openai_search_init()
         );
     }
 
-    function openai_search_get_embedding_engines()
+    function brainy_search_get_embedding_engines()
     {
         return array(
             'text-embedding-ada-001',
@@ -242,26 +273,26 @@ function openai_search_init()
     }
 
     // Define function to render settings page HTML
-    function openai_search_settings_page_html()
+    function brainy_search_settings_page_html()
     {
         ?>
         <div class="wrap">
             <h1>
-                <?php esc_html_e('OpenAI Search Settings', 'openai-search'); ?>
+                <?php esc_html_e('BrainySearch Settings', 'brainy-search'); ?>
             </h1>
             <form action="options.php" method="post">
                 <?php
-                settings_fields('openai_search_options');
-                do_settings_sections('openai_search_options');
+                settings_fields('brainy_search_options');
+                do_settings_sections('brainy_search_options');
                 ?>
                 <h2>
-                    <?php esc_html_e('API Settings', 'openai-search'); ?>
+                    <?php esc_html_e('API Settings', 'brainy-search'); ?>
                 </h2>
                 <table class="form-table">
                     <tr>
                         <th scope="row">
                             <label for="openai_key">
-                                <?php esc_html_e('API Key', 'openai-search'); ?>
+                                <?php esc_html_e('API Key', 'brainy-search'); ?>
                                 <span class="required">*</span>
                             </label>
                         </th>
@@ -276,59 +307,59 @@ function openai_search_init()
                     </tr>
                 </table>
                 <h2>
-                    <?php esc_html_e('General Settings', 'openai-search'); ?>
+                    <?php esc_html_e('General Settings', 'brainy-search'); ?>
                 </h2>
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="suggestion_output">
-                                <?php esc_html_e('Suggestion Output', 'openai-search'); ?>
+                                <?php esc_html_e('Suggestion Output', 'brainy-search'); ?>
                             </label></th>
                         <td>
                             <select id="suggestion_output" name="suggestion_output">
                                 <option value="always" <?php selected(get_option('suggestion_output'), 'always'); ?>><?php
-                                   esc_html_e('Always', 'openai-search'); ?></option>
-                                <option value="user-defined" <?php selected(get_option('suggestion_output'), 'user-defined'); ?>><?php esc_html_e('User-defined', 'openai-search'); ?></option>
+                                   esc_html_e('Always', 'brainy-search'); ?></option>
+                                <option value="user-defined" <?php selected(get_option('suggestion_output'), 'user-defined'); ?>><?php esc_html_e('User-defined', 'brainy-search'); ?></option>
                                 <option value="never" <?php selected(get_option('suggestion_output'), 'never'); ?>><?php
-                                   esc_html_e('Never', 'openai-search'); ?></option>
+                                   esc_html_e('Never', 'brainy-search'); ?></option>
                             </select>
                             <p class="description">
-                                <?php esc_html_e('Output suggestion even if no articles found, could be hallucinations effect', 'openai-search'); ?>
+                                <?php esc_html_e('Output suggestion even if no articles found, could be hallucinations effect', 'brainy-search'); ?>
                             </p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="suppose_phrase">
-                                <?php esc_html_e('Suppose phrase', 'openai-search'); ?>
+                                <?php esc_html_e('Suppose phrase', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="text" id="suppose_phrase" name="suppose_phrase"
                                 value="<?php echo esc_attr(get_option('suppose_phrase')); ?>" /></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="results_limit">
-                                <?php esc_html_e('Results Limit', 'openai-search'); ?>
+                                <?php esc_html_e('Results Limit', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="number" id="results_limit" name="results_limit"
                                 value="<?php echo esc_attr(get_option('results_limit', 5)); ?>" min="1" max="10" /></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="paragraph_limit">
-                                <?php esc_html_e('Paragraph Characters Limit', 'openai-search'); ?>
+                                <?php esc_html_e('Paragraph Characters Limit', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="number" id="paragraph_limit" name="paragraph_limit"
                                 value="<?php echo esc_attr(get_option('paragraph_limit', 400)); ?>" min="50" max="1000" /></td>
                     </tr>
                 </table>
                 <h2>
-                    <?php esc_html_e('OpenAI Settings', 'openai-search'); ?>
+                    <?php esc_html_e('OpenAI Settings', 'brainy-search'); ?>
                 </h2>
                 <table class="form-table">
                     <tr>
                         <th scope="row"><label for="embedding_engine">
-                                <?php esc_html_e('Embedding Engine', 'openai-search'); ?>
+                                <?php esc_html_e('Embedding Engine', 'brainy-search'); ?>
                             </label></th>
                         <td>
                             <select id="embedding_engine" name="embedding_engine">
-                                <?php foreach (openai_search_get_embedding_engines() as $engine): ?>
+                                <?php foreach (brainy_search_get_embedding_engines() as $engine): ?>
                                     <option value="<?php echo esc_attr($engine); ?>" <?php selected(get_option('embedding_engine', 'text-embedding-ada-002'), $engine); ?>><?php echo esc_html($engine); ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -336,43 +367,43 @@ function openai_search_init()
                     </tr>
                     <tr>
                         <th scope="row"><label for="complete_engine">
-                                <?php esc_html_e('Completion Engine', 'openai-search'); ?>
+                                <?php esc_html_e('Completion Engine', 'brainy-search'); ?>
                             </label></th>
                         <td>
                             <select id="complete_engine" name="complete_engine">
-                                <?php foreach (openai_search_get_complete_engines() as $engine): ?>
+                                <?php foreach (brainy_search_get_complete_engines() as $engine): ?>
                                     <option value="<?php echo esc_attr($engine); ?>" <?php selected(get_option('complete_engine', 'text-davinci-003'), $engine); ?>><?php echo esc_html($engine); ?></option>
                                 <?php endforeach; ?>
                             </select>
                             <p class="description"><a href="https://beta.openai.com/docs/models/overview" target="_blank">
-                                    <?php esc_html_e('Read more about engines', 'openai-search'); ?>
+                                    <?php esc_html_e('Read more about engines', 'brainy-search'); ?>
                                 </a></p>
                         </td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="max_tokens">
-                                <?php esc_html_e('Max Tokens', 'openai-search'); ?>
+                                <?php esc_html_e('Max Tokens', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="number" id="max_tokens" name="max_tokens"
                                 value="<?php echo esc_attr(get_option('max_tokens', 50)); ?>" /></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="temperature">
-                                <?php esc_html_e('Temperature', 'openai-search'); ?>
+                                <?php esc_html_e('Temperature', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="number" id="temperature" name="temperature"
                                 value="<?php echo esc_attr(get_option('temperature', 0.5)); ?>" step="0.01" /></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="top_p">
-                                <?php esc_html_e('Top P', 'openai-search'); ?>
+                                <?php esc_html_e('Top P', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="number" id="top_p" name="top_p" value="<?php echo esc_attr(get_option('top_p', 1)); ?>"
                                 step="0.01" /></td>
                     </tr>
                     <tr>
                         <th scope="row"><label for="stop">
-                                <?php esc_html_e('Stop', 'openai-search'); ?>
+                                <?php esc_html_e('Stop', 'brainy-search'); ?>
                             </label></th>
                         <td><input type="text" id="stop" name="stop"
                                 value="<?php echo esc_attr(get_option('stop', '###')); ?>" /></td>
@@ -384,12 +415,12 @@ function openai_search_init()
     <?php
     }
 
-    function openai_search_register_settings()
+    function brainy_search_register_settings()
     {
-        register_setting('openai_search_options', 'openai_key');
-        register_setting('openai_search_options', 'suggestion_output');
+        register_setting('brainy_search_options', 'openai_key');
+        register_setting('brainy_search_options', 'suggestion_output');
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'suppose_phrase',
             array(
                 'type' => 'string',
@@ -398,7 +429,7 @@ function openai_search_init()
             )
         );
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'results_limit',
             array(
                 'type' => 'integer',
@@ -407,7 +438,7 @@ function openai_search_init()
             )
         );
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'paragraph_limit',
             array(
                 'type' => 'integer',
@@ -415,10 +446,10 @@ function openai_search_init()
                 'default' => 400,
             )
         );
-        register_setting('openai_search_options', 'embedding_engine');
-        register_setting('openai_search_options', 'complete_engine');
+        register_setting('brainy_search_options', 'embedding_engine');
+        register_setting('brainy_search_options', 'complete_engine');
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'max_tokens',
             array(
                 'type' => 'integer',
@@ -427,7 +458,7 @@ function openai_search_init()
             )
         );
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'temperature',
             array(
                 'type' => 'number',
@@ -436,7 +467,7 @@ function openai_search_init()
             )
         );
         register_setting(
-            'openai_search_options',
+            'brainy_search_options',
             'top_p',
             array(
                 'type' => 'number',
@@ -444,95 +475,95 @@ function openai_search_init()
                 'default' => 1,
             )
         );
-        register_setting('openai_search_options', 'stop');
+        register_setting('brainy_search_options', 'stop');
     }
 
 
-    function openai_search_settings_page()
+    function brainy_search_settings_page()
     {
         add_options_page(
-            __('OpenAI Search', 'openai-search'),
-            __('OpenAI Search', 'openai-search'),
+            __('BrainySearch', 'brainy-search'),
+            __('BrainySearch', 'brainy-search'),
             'manage_options',
-            'openai-search',
-            'openai_search_settings_page_html'
+            'brainy-search',
+            'brainy_search_settings_page_html'
         );
     }
 
-    add_action('admin_menu', 'openai_search_settings_page');
-    add_action('admin_init', 'openai_search_register_settings');
+    add_action('admin_menu', 'brainy_search_settings_page');
+    add_action('admin_init', 'brainy_search_register_settings');
 
-    function openai_search_settings_validate($input)
+    function brainy_search_settings_validate($input)
     {
         if (empty(trim($input['openai_key']))) {
-            add_settings_error('openai_search_options', 'openai_key', __('Please enter your OpenAI API key.', 'openai-search'), 'error');
+            add_settings_error('brainy_search_options', 'openai_key', __('Please enter your OpenAI API key.', 'brainy-search'), 'error');
         }
         return $input;
     }
-    add_filter('pre_update_option_openai_search_options', 'openai_search_validate_settings');
+    add_filter('pre_update_option_brainy_search_options', 'brainy_search_validate_settings');
 
 
-    function openai_search_form()
+    function brainy_search_form()
     {
-        include openai_search_load_template('openai-search-form');
+        include brainy_search_load_template('brainy-search-form');
         ?>
-        <link rel="stylesheet" type="text/css" href="<?php echo plugin_dir_url(__FILE__) . 'openai-search.css'; ?>" />
+        <link rel="stylesheet" type="text/css" href="<?php echo plugin_dir_url(__FILE__) . 'brainy-search.css'; ?>" />
     <?php
     }
 
     // Define shortcode to display search form and results
-    function openai_search_shortcode()
+    function brainy_search_shortcode()
     {
         ob_start();
-        ?><div class="openai-search">
+        ?><div class="brainy-search">
             <?php
-            openai_search_form();
-            openai_search_handle_query();
+            brainy_search_form();
+            brainy_search_handle_query();
             ?>
         </div>
         <?php
         return ob_get_clean();
     }
     // Add shortcode and search query handler to WordPress hooks
-    add_shortcode('openai_search', 'openai_search_shortcode');
+    add_shortcode('brainy_search', 'brainy_search_shortcode');
 
     // Define shortcode to display search form on a page or post
-    function openai_search_form_shortcode()
+    function brainy_search_form_shortcode()
     {
         ob_start();
         ?>
-        <div class="openai-search form">
+        <div class="brainy-search form">
             <?php
-            openai_search_form();
+            brainy_search_form();
             ?>
         </div>
         <?php
         return ob_get_clean();
     }
     // Add shortcode and search query handler to WordPress hooks
-    add_shortcode('openai_search_form', 'openai_search_form_shortcode');
+    add_shortcode('brainy_search_form', 'brainy_search_form_shortcode');
     // Define shortcode to display search form on a page or post
-    function openai_search_results_shortcode()
+    function brainy_search_results_shortcode()
     {
         ob_start();
         ?>
-        <div class="openai-search results">
+        <div class="brainy-search results">
             <?php
-            openai_search_handle_query();
+            brainy_search_handle_query();
             ?>
         </div>
         <?php
         return ob_get_clean();
     }
     // Add shortcode and search query handler to WordPress hooks
-    add_shortcode('openai_search_results', 'openai_search_results_shortcode');
+    add_shortcode('brainy_search_results', 'brainy_search_results_shortcode');
 
     // Define function to handle search query
-    function openai_search_handle_query()
+    function brainy_search_handle_query()
     {
         if (isset($_GET['q'])) {
             $query = sanitize_text_field($_GET['q']);
-            $cache_key = 'openai_search_results_' . md5($query); // Use a unique cache key based on the query
+            $cache_key = 'brainy_search_results_' . md5($query); // Use a unique cache key based on the query
 
             // Try to retrieve the result from the cache
             $result = get_transient($cache_key);
@@ -546,11 +577,14 @@ function openai_search_init()
                 $top_p = get_option('top_p', 0.5);
                 $stop = get_option('stop', '###');
                 $query = sanitize_text_field($_GET['q']);
-                $result = openai_search($query, $embedding_engine, $complete_engine, $max_tokens, $temperature, $top_p, $stop);
+                $result = brainy_search($query, $embedding_engine, $complete_engine, $max_tokens, $temperature, $top_p, $stop);
+                if (!$result) {
+                    echo "Some issue. No results";
+                }
                 set_transient($cache_key, $result, 60 * MINUTE_IN_SECONDS); // Cache for 5 minutes
             }
-            // Load the template openai-search-results
-            include openai_search_load_template('openai-search-results');
+            // Load the template brainy-search-results
+            include brainy_search_load_template('brainy-search-results');
         }
     }
 
@@ -564,8 +598,8 @@ function openai_search_init()
             // Create the "aisearch" page and add the [aisearch] shortcode
             $page_id = wp_insert_post(
                 array(
-                    'post_title' => 'AI Search',
-                    'post_content' => '[openai_search]',
+                    'post_title' => 'BrainySearch',
+                    'post_content' => '[brainy_search]',
                     'post_status' => 'publish',
                     'post_type' => 'page'
                 )
@@ -576,46 +610,49 @@ function openai_search_init()
     }
     register_activation_hook(__FILE__, 'create_aisearch_page');
 
-    function openai_search_activate()
+    function brainy_search_activate()
     {
         if (!get_option('openai_key')) {
-            add_action('admin_notices', 'openai_search_activation_notice');
+            add_action('admin_notices', 'brainy_search_activation_notice');
         }
     }
 
-    function openai_search_activation_notice()
+    function brainy_search_activation_notice()
     {
         ?>
         <div class="error">
             <p>
-                <?php printf(__('Please <a href="%s">enter your OpenAI API key</a> to use the OpenAI Search plugin.', 'openai_search'), esc_url(admin_url('options-general.php?page=openai-search'))); ?>
+                <?php printf(__('Please <a href="%s">enter your OpenAI API key</a> to use the BrainySearch plugin.', 'brainy_search'), esc_url(admin_url('options-general.php?page=brainy-search'))); ?>
             </p>
         </div>
     <?php
     }
-    register_activation_hook(__FILE__, 'openai_search_activate');
+    register_activation_hook(__FILE__, 'brainy_search_activate');
 
 
 
-    add_filter('plugin_row_meta', 'openai_search_add_plugin_row_meta', 10, 2);
+    add_filter('plugin_row_meta', 'brainy_search_add_plugin_row_meta', 10, 2);
 
-    function openai_search_add_plugin_row_meta($links, $file)
+    function brainy_search_add_plugin_row_meta($links, $file)
     {
         if (plugin_basename(__FILE__) === $file) {
-            $links[] = '<a href="' . admin_url('admin.php?page=openai-search') . '">' . esc_html__('Settings', 'openai-search') . '</a>';
-            $links[] = '<a href="' . home_url('/aisearch') . '">' . esc_html__('AI Search page', 'openai-search') . '</a>';
+            $links[] = '<a href="' . admin_url('admin.php?page=brainy-search') . '">' . esc_html__('Settings', 'brainy-search') . '</a>';
+            $links[] = '<a href="' . home_url('/aisearch') . '">' . esc_html__('BrainySearch page', 'brainy-search') . '</a>';
         }
         return $links;
     }
     // Define function to handle post updates and generate embeddings
-    function openai_search_update_post($post_id, $post, $update)
+    function brainy_search_update_post($post_id, $post, $update)
     {
         if ($post->post_status == 'publish') {
-            generate_embeddings_for_post($post_id, get_option('embedding_engine', 'text-davinci-002'));
+            // generate_embeddings_for_post($post_id, get_option('embedding_engine', 'text-davinci-002'));
+            schedule_embedding_generation($post_id, get_option('embedding_engine', 'text-davinci-002'));
         }
     }
 
     // Add hook to generate embeddings when a post is updated or published
-    add_action('save_post', 'openai_search_update_post', 10, 3);
+    add_action('save_post', 'brainy_search_update_post', 10, 3);
+
+    include 'src/clusters.php';
 }
-openai_search_init();
+brainy_search_init();
