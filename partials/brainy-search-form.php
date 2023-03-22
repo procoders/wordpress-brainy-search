@@ -5,7 +5,6 @@
  *
  * This template file is loaded by the `brainy_search_handle_query()` function.
  *
- * @package brainy-search
  */
 ?>
 

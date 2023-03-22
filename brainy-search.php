@@ -10,26 +10,31 @@ License: GPL2
 */
 
 // Set up OpenAI API client
-function openai_api_call($endpoint, $data)
-{
+function brainy_search_openai_api_call($endpoint, $data) {
     $openai_key = get_option('openai_key');
-    $ch = curl_init();
-    curl_setopt($ch, CURLOPT_URL, "https://api.openai.com/v1/" . $endpoint);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
-    curl_setopt(
-        $ch,
-        CURLOPT_HTTPHEADER,
-        array(
-            "Content-Type: application/json",
-            "Authorization: Bearer " . $openai_key
-        )
+    $url = "https://api.openai.com/v1/" . $endpoint;
+
+    $args = array(
+        'headers' => array(
+            'Content-Type' => 'application/json',
+            'Authorization' => 'Bearer ' . $openai_key
+        ),
+        'body' => json_encode($data),
+        'method' => 'POST',
+        'data_format' => 'body',
     );
-    $response = curl_exec($ch);
-    curl_close($ch);
-    return json_decode($response, true);
+
+    $response = wp_remote_post($url, $args);
+
+    if (is_wp_error($response)) {
+        // Handle the error accordingly.
+        // You may want to return an error message or throw an exception.
+        return null;
+    }
+
+    return json_decode(wp_remote_retrieve_body($response), true);
 }
+
 
 function brainy_search_load_template($template_name)
 {
@@ -50,18 +55,18 @@ function brainy_search_init()
     $embedding_engine = get_option('embedding_engine', 'text-davinci-002');
     $complete_engine = get_option('complete_engine', 'text-davinci-002');
     // Define function to generate embeddings for a paragraph
-    function get_embedding($paragraph, $model_engine)
+    function brainy_search_get_embedding($paragraph, $model_engine)
     {
         $data = array(
             'model' => $model_engine,
             'input' => $paragraph
         );
-        $response = openai_api_call('embeddings', $data);
+        $response = brainy_search_openai_api_call('embeddings', $data);
         return $response['data'][0]['embedding'];
     }
 
     // Get paragrahps of the text
-    function get_paraphs_normalized($html)
+    function brainy_search_get_paraphs_normalized($html)
     {
         // Remove any HTML tags from the input text
         $text = strip_tags($html);
@@ -94,14 +99,14 @@ function brainy_search_init()
 
 
     // Define function to generate embeddings for all paragraphs in a post
-    function generate_embeddings_for_post($post_id, $model_engine)
+    function brainy_search_generate_embeddings_for_post($post_id, $model_engine)
     {
         $post = get_post($post_id);
-        $combined_paragraphs = get_paraphs_normalized($post->post_content);
+        $combined_paragraphs = brainy_search_get_paraphs_normalized($post->post_content);
 
         $embeddings = array();
         foreach ($combined_paragraphs as $paragraph) {
-            $embedding = get_embedding($paragraph, $model_engine);
+            $embedding = brainy_search_get_embedding($paragraph, $model_engine);
             $embeddings[] = $embedding;
         }
 
@@ -109,8 +114,8 @@ function brainy_search_init()
     }
 
 
-    // Hook the display_embeddings_notice() function to the admin_notices action
-    function display_embeddings_notice()
+    // Hook the brainy_search_display_embeddings_notice() function to the admin_notices action
+    function brainy_search_display_embeddings_notice()
     {
         $notice = '<div class="notice notice-info">';
         $notice .= '<p>The post embeddings are currently being generated. This process may take a few minutes to complete.</p>';
@@ -118,7 +123,7 @@ function brainy_search_init()
         echo $notice;
     }
 
-    function schedule_embedding_generation($post_id, $model_engine)
+    function brainy_search_schedule_embedding_generation($post_id, $model_engine)
     {
         $timestamp = time(); // Schedule the event to run immediately
         wp_schedule_single_event($timestamp, 'generate_embeddings_event', array($post_id, $model_engine));
@@ -127,31 +132,31 @@ function brainy_search_init()
 
     }
 
-    // Hook the schedule_embedding_generation() function to a custom WordPress action
-    add_action('generate_embeddings_action', 'schedule_embedding_generation', 10, 2);
+    // Hook the brainy_search_schedule_embedding_generation() function to a custom WordPress action
+    add_action('generate_embeddings_action', 'brainy_search_schedule_embedding_generation', 10, 2);
 
     // Define the function that will generate the embeddings and hook it to the generate_embeddings_event
-    add_action('generate_embeddings_event', 'generate_embeddings_for_post', 10, 2);
+    add_action('generate_embeddings_event', 'brainy_search_generate_embeddings_for_post', 10, 2);
 
 
 
 
     // Define function to retrieve embeddings for a post
-    function get_embeddings_for_post($post_id, $model_engine)
+    function brainy_search_get_embeddings_for_post($post_id, $model_engine)
     {
         $embeddings = get_transient("embeddings_{$post_id}");
 
         if (!$embeddings || !$embeddings[0]) {
 
-            //generate_embeddings_for_post($post_id, $model_engine);
-            schedule_embedding_generation($post_id, $model_engine);
+            //brainy_search_generate_embeddings_for_post($post_id, $model_engine);
+            brainy_search_schedule_embedding_generation($post_id, $model_engine);
             $embeddings = get_transient("embeddings_{$post_id}");
         }
         return $embeddings;
     }
 
     // Define function to retrieve embeddings for all posts
-    function get_embeddings_for_posts($model_engine)
+    function brainy_search_get_embeddings_for_posts($model_engine)
     {
         $posts = get_posts(
             array(
@@ -160,14 +165,14 @@ function brainy_search_init()
         );
         $all_embeddings = array();
         foreach ($posts as $post) {
-            $embeddings = get_embeddings_for_post($post->ID, $model_engine);
+            $embeddings = brainy_search_get_embeddings_for_post($post->ID, $model_engine);
             $all_embeddings[$post->ID] = $embeddings;
         }
         return $all_embeddings;
     }
 
     // Define function to compute cosine similarity between two vectors
-    function cosine_similarity($a, $b)
+    function brainy_search_cosine_similarity($a, $b)
     {
         if (!$a or !$b)
             return 0;
@@ -193,9 +198,9 @@ function brainy_search_init()
             )
         );
 
-        $query_embedding = get_embedding($query, $embedding_engine);
+        $query_embedding = brainy_search_get_embedding($query, $embedding_engine);
 
-        $all_embeddings = get_embeddings_for_posts($embedding_engine);
+        $all_embeddings = brainy_search_get_embeddings_for_posts($embedding_engine);
 
         $scores = array();
 
@@ -203,7 +208,7 @@ function brainy_search_init()
             if (!$post_embeddings)
                 return;
             foreach ($post_embeddings as $paragraph_id => $embedding) {
-                $score = cosine_similarity($embedding, $query_embedding);
+                $score = brainy_search_cosine_similarity($embedding, $query_embedding);
                 $scores[$post_id . '__' . $paragraph_id] = $score;
             }
         }
@@ -215,7 +220,7 @@ function brainy_search_init()
             list($post_id, $paragraph_id) = array_pad(explode('__', $post_paragraph_id), 2, null);
 
             $best_post = get_post($post_id);
-            $best_paragraph = get_paraphs_normalized($best_post->post_content)[$paragraph_id];
+            $best_paragraph = brainy_search_get_paraphs_normalized($best_post->post_content)[$paragraph_id];
 
             $best_posts[] = array('post_id' => $post_id, 'post' => $best_post, 'paragraph' => $best_paragraph, 'score' => $score);
         }
@@ -234,7 +239,7 @@ function brainy_search_init()
             'top_p' => floatval($top_p),
             'stop' => $stop
         );
-        $completions_response = openai_api_call('completions', $completions_request_data);
+        $completions_response = brainy_search_openai_api_call('completions', $completions_request_data);
         // var_dump($completions_response); exit();
         $response_text = $completions_response['choices'][0]['text'];
         $response_text = ucfirst(trim(str_replace("\nA:", "", $response_text)));
@@ -506,10 +511,13 @@ function brainy_search_init()
     function brainy_search_form()
     {
         include brainy_search_load_template('brainy-search-form');
-        ?>
-        <link rel="stylesheet" type="text/css" href="<?php echo plugin_dir_url(__FILE__) . 'brainy-search.css'; ?>" />
-    <?php
     }
+
+    function brainy_search_enqueue_styles() {
+        wp_enqueue_style('brainy-search', plugin_dir_url(__FILE__) . 'brainy-search.css');
+    }
+    add_action('wp_enqueue_scripts', 'brainy_search_enqueue_styles');
+    
 
     // Define shortcode to display search form and results
     function brainy_search_shortcode()
@@ -590,7 +598,7 @@ function brainy_search_init()
 
 
 
-    function create_aisearch_page()
+    function brainy_search_create_aisearch_page()
     {
         // Check if the "aisearch" page exists
         $aisearch_page = get_page_by_title('aisearch');
@@ -608,7 +616,7 @@ function brainy_search_init()
             update_post_meta($page_id, '_wp_page_template', 'page.php');
         }
     }
-    register_activation_hook(__FILE__, 'create_aisearch_page');
+    register_activation_hook(__FILE__, 'brainy_search_create_aisearch_page');
 
     function brainy_search_activate()
     {
@@ -645,8 +653,8 @@ function brainy_search_init()
     function brainy_search_update_post($post_id, $post, $update)
     {
         if ($post->post_status == 'publish') {
-            // generate_embeddings_for_post($post_id, get_option('embedding_engine', 'text-davinci-002'));
-            schedule_embedding_generation($post_id, get_option('embedding_engine', 'text-davinci-002'));
+            // brainy_search_generate_embeddings_for_post($post_id, get_option('embedding_engine', 'text-davinci-002'));
+            brainy_search_schedule_embedding_generation($post_id, get_option('embedding_engine', 'text-davinci-002'));
         }
     }
 

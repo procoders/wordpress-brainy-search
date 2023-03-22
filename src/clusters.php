@@ -24,7 +24,7 @@ function displayPostClusters($atts)
                 return $post->post_title;
             }, $posts))
         );
-        $completions_response = openai_api_call('completions', $completions_request_data);
+        $completions_response = brainy_search_openai_api_call('completions', $completions_request_data);
         $html .= '<h3>' . $completions_response['choices'][0]['text'] . '<h3>';
 
         $html .= '<ul>';
@@ -142,7 +142,7 @@ function euclideanDistance($v1, $v2)
 function loadPostEmbeddings($embedding_engine)
 {
     // Get the embeddings for all posts
-    $post_embeddings = get_embeddings_for_posts($embedding_engine);
+    $post_embeddings = brainy_search_get_embeddings_for_posts($embedding_engine);
 
 
     $count = 0;
