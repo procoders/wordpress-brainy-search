@@ -18,13 +18,6 @@ jobs:
         SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
         SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
         SLUG: ${{ secrets.SLUG }}      
-    - name: WordPress Plugin Readme/Assets Update
-      uses: 10up/action-wordpress-plugin-asset-update@2.1.1
-      id: deploy-assets
-      env:
-        SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
-        SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
-        SLUG: ${{ secrets.SLUG }}      
     - name: Upload release asset
       uses: actions/upload-release-asset@v1
       env:
